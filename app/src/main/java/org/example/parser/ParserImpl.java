@@ -18,12 +18,17 @@ public class ParserImpl implements ParserInterface{
     private static Logger logger = LoggerFactory.getLogger(ParserImpl.class);
     @Override
     public void toXML(String file) {
+        File jsonFile = new File(file);
+        if (!jsonFile.exists()) {
+            logger.warn("File not found: {}", file);
+            return;
+        }
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            City city = objectMapper.readValue(new File(file), City.class);
+            City city = objectMapper.readValue(jsonFile, City.class);
             logger.info("Read value from ObjectMapper: {}", city.toString());
             String xmlOutput = new XmlMapper().enable(SerializationFeature.INDENT_OUTPUT).writeValueAsString(city);
-            logger.info("XML output: {}", xmlOutput);
+            logger.debug("XML output: {}", xmlOutput);
             saveToFile("output-" + file.replace(".json", ".xml"), xmlOutput);
         } catch (Exception e) {
             logger.error(e.getMessage());
