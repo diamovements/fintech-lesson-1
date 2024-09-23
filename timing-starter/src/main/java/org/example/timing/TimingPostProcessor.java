@@ -1,4 +1,4 @@
-package org.example.config.timing;
+package org.example.timing;
 
 import lombok.extern.slf4j.Slf4j;
 import org.aopalliance.intercept.MethodInterceptor;
@@ -9,8 +9,6 @@ import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
@@ -47,18 +45,18 @@ public class TimingPostProcessor implements BeanPostProcessor {
 
     static class TimingInterceptor implements MethodInterceptor {
 
-        @Nullable
         @Override
-        public Object invoke(@Nonnull MethodInvocation invocation) throws Throwable {
+        public Object invoke(MethodInvocation invocation) throws Throwable {
             String methodName = invocation.getMethod().getName();
             Class<?> className = Objects.requireNonNull(invocation.getThis()).getClass();
-            logger.info("Method {} from {} has started...", methodName, className);
+            logger.info("\u001B[35m" + "Method [{}] from [{}] has started...", methodName, className);
             Instant startTime = Instant.now();
             Object result = invocation.proceed();
             Instant endTime = Instant.now();
-            logger.info("Method {} from {} has finished in [{}] nanos.", methodName, className, Duration.between(startTime, endTime).getNano());
+            logger.info("\u001B[35m" + "Method [{}] from [{}] has finished in [{}] nanos.", methodName, className, Duration.between(startTime, endTime).getNano());
             return result;
         }
     }
 }
+
 

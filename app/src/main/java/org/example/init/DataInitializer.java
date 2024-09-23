@@ -2,7 +2,7 @@ package org.example.init;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.config.timing.Timing;
+import org.example.timing.Timing;
 import org.example.entity.Category;
 import org.example.entity.Location;
 import org.example.service.CategoryService;
@@ -35,7 +35,7 @@ public class DataInitializer {
     @Bean
     public CommandLineRunner doInit(RestTemplate restTemplate) {
         return args -> {
-            logger.info("Starting initialization...");
+            logger.info("\u001B[34m" + "Starting initialization...");
             logger.info("Fetching categories...");
             Category[] categories = restTemplate.getForObject(categoryURL, Category[].class);
             if (categories != null) {
@@ -60,7 +60,7 @@ public class DataInitializer {
                 logger.error("Locations are null");
             }
             logger.info("Done fetching locations.");
-            logger.info("Finished initialization.");
+            logger.info("\u001B[34m" + "Finished initialization.");
         };
     }
 }

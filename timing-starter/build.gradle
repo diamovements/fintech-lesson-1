@@ -8,7 +8,6 @@ repositories {
 }
 
 dependencies {
-    implementation project(path: ':timing-starter')
     testImplementation libs.junit
     implementation libs.guava
     testImplementation ("org.junit.jupiter:junit-jupiter:5.8.1")
@@ -21,6 +20,10 @@ dependencies {
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:3.3.3")
     annotationProcessor ("org.projectlombok:lombok:1.18.34")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.0-rc1")
+    implementation("org.springframework.boot:spring-boot-starter-aop:3.3.4")
+    implementation("org.aspectj:aspectjweaver:1.9.22.1")
+
+
 }
 
 java {
@@ -30,5 +33,5 @@ java {
 }
 
 application {
-    mainClass = 'org.example.App'
+    mainClass = 'org.example.Main'
 }

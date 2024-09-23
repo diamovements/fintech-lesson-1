@@ -1,7 +1,7 @@
 package org.example.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.config.timing.Timing;
+import org.example.timing.Timing;
 import org.example.entity.Location;
 import org.example.exceptions.LocationNotFoundException;
 import org.example.service.LocationService;

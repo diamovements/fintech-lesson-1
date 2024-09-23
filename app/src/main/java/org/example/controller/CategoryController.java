@@ -1,10 +1,10 @@
 package org.example.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.example.config.timing.Timing;
 import org.example.entity.Category;
 import org.example.exceptions.CategoryNotFoundException;
 import org.example.service.CategoryService;
+import org.example.timing.Timing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
