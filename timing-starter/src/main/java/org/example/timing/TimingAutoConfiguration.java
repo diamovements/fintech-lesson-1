@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 public class TimingAutoConfiguration {
 
     @Bean
-    public TimingPostProcessor timingPostProcessor() {
+    public static TimingPostProcessor timingPostProcessor() {
         return new TimingPostProcessor();
     }
 }

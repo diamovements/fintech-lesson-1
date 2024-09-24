@@ -3,9 +3,9 @@ package org.example.service;
 import lombok.RequiredArgsConstructor;
 import org.example.dao.UniversalDatabase;
 import org.example.entity.Category;
-import org.example.exceptions.CategoryNotFoundException;
 import org.springframework.stereotype.Service;
 import java.util.Collection;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -13,31 +13,26 @@ public class CategoryService {
 
     private final UniversalDatabase<Integer, Category> db;
 
-    public Category getCategory(int category_id) {
-        Category category = db.get(category_id);
-        if (category == null) {
-            throw new CategoryNotFoundException("Category with id: " + category_id + " doesn't exist");
-        }
-        return category;
+    public Category getCategory(int categoryId) {
+        Optional<Category> category = Optional.ofNullable(db.get(categoryId));
+        return category.orElseThrow(() -> new IllegalArgumentException(String.valueOf(categoryId)));
     }
 
     public Collection<Category> getAllCategories() {
         return db.getAll();
     }
 
-    public void deleteCategory(int category_id) {
-        Category category = getCategory(category_id);
-        if (category == null) {
-            throw new CategoryNotFoundException("Category with id: " + category_id + " doesn't exist");
-        }
-        db.remove(category_id);
+    public void deleteCategory(int categoryId) {
+        Optional<Category> category = Optional.ofNullable(db.get(categoryId));
+        category.orElseThrow(() -> new IllegalArgumentException(String.valueOf(categoryId)));
+        db.remove(categoryId);
     }
 
-    public void addCategory(int category_id, Category category) {
-        db.put(category_id, category);
+    public void addCategory(int categoryId, Category category) {
+        db.put(categoryId, category);
     }
 
-    public void updateCategory(int category_id, Category category) {
-        db.update(category_id, category);
+    public void updateCategory(int categoryId, Category category) {
+        db.update(categoryId, category);
     }
 }

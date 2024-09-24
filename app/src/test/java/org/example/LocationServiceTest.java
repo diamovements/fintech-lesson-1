@@ -3,7 +3,6 @@ package org.example;
 import org.example.dao.LocationDatabase;
 import org.example.dao.UniversalDatabase;
 import org.example.entity.Location;
-import org.example.exceptions.LocationNotFoundException;
 import org.example.service.LocationService;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -56,11 +55,11 @@ public class LocationServiceTest {
 
     @Test
     void getLocationById_shouldThrowException() {
-        assertThrows(LocationNotFoundException.class, () -> locationService.getLocation("ast"));
+        assertThrows(IllegalArgumentException.class, () -> locationService.getLocation("ast"));
     }
 
     @Test
     void deleteLocation_shouldThrowException() {
-        assertThrows(LocationNotFoundException.class, () -> locationService.deleteLocation("ast"));
+        assertThrows(IllegalArgumentException.class, () -> locationService.deleteLocation("ast"));
     }
 }

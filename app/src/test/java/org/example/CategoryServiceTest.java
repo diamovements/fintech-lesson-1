@@ -3,7 +3,6 @@ package org.example;
 import org.example.dao.CategoryDatabase;
 import org.example.dao.UniversalDatabase;
 import org.example.entity.Category;
-import org.example.exceptions.CategoryNotFoundException;
 import org.example.service.CategoryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,11 +56,11 @@ public class CategoryServiceTest {
 
     @Test
     void getCategoryById_shouldThrowException() {
-        assertThrows(CategoryNotFoundException.class, () -> categoryService.getCategory(133));
+        assertThrows(IllegalArgumentException.class, () -> categoryService.getCategory(133));
     }
 
     @Test
     void deleteCategory_shouldThrowException() {
-        assertThrows(CategoryNotFoundException.class, () -> categoryService.deleteCategory(133));
+        assertThrows(IllegalArgumentException.class, () -> categoryService.deleteCategory(133));
     }
 }

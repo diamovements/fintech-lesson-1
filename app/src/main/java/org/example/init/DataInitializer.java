@@ -2,29 +2,28 @@ package org.example.init;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.dao.CategoryDatabase;
+import org.example.dao.LocationDatabase;
+import org.example.dao.UniversalDatabase;
 import org.example.timing.Timing;
 import org.example.entity.Category;
 import org.example.entity.Location;
-import org.example.service.CategoryService;
-import org.example.service.LocationService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-@Component
+@Configuration
 @RequiredArgsConstructor
 @Slf4j
-@Timing
 public class DataInitializer {
-    private final Logger logger = LoggerFactory.getLogger(DataInitializer.class);
-    private final CategoryService categoryService;
-    private final LocationService locationService;
+
+    private final UniversalDatabase<String, Location> locationDatabase;
+    private final UniversalDatabase<Integer, Category> categoryDatabase;
 
     @Value("${spring.url.category}")
     private String categoryURL;
@@ -33,34 +32,44 @@ public class DataInitializer {
     private String locationURL;
 
     @Bean
+    @Timing
     public CommandLineRunner doInit(RestTemplate restTemplate) {
         return args -> {
-            logger.info("\u001B[34m" + "Starting initialization...");
-            logger.info("Fetching categories...");
-            Category[] categories = restTemplate.getForObject(categoryURL, Category[].class);
-            if (categories != null) {
-                logger.info("Fetched categories: {}", Arrays.stream(categories).collect(Collectors.toList()));
-                for (Category c : categories) {
-                    categoryService.addCategory(c.getId(), c);
+            log.info("\u001B[34m" + "Starting initialization...");
+            try {
+                log.info("Fetching categories...");
+                Optional<Category[]> categories = Optional.ofNullable(restTemplate.getForObject(categoryURL, Category[].class));
+                if (categories.isPresent()) {
+                    log.info("Fetched categories: {}", Arrays.stream(categories.get()).collect(Collectors.toList()));
+                    for (Category c : categories.get()) {
+                        categoryDatabase.put(c.getId(), c);
+                    }
                 }
-            }
-            else {
-                logger.error("Categories are null");
-            }
-            logger.info("Done fetching categories.");
-            logger.info("Fetching places...");
-            Location[] locations = restTemplate.getForObject(locationURL, Location[].class);
-            if (locations != null) {
-                logger.info("Fetched locations: {}", Arrays.stream(locations).collect(Collectors.toList()));
-                for (Location l : locations) {
-                    locationService.addLocation(l.getSlug(), l);
+                else {
+                    log.warn("No categories found at URL: {}", categoryURL);
                 }
+            } catch (Exception e) {
+                log.error("Error fetching categories: {}", e.getMessage());
             }
-            else {
-                logger.error("Locations are null");
+            log.info("Done fetching categories.");
+
+            try {
+                log.info("Fetching places...");
+                Optional<Location[]> locations = Optional.ofNullable(restTemplate.getForObject(locationURL, Location[].class));
+                if (locations.isPresent()) {
+                    log.info("Fetched locations: {}", Arrays.stream(locations.get()).collect(Collectors.toList()));
+                    for (Location l : locations.get()) {
+                        locationDatabase.put(l.getSlug(), l);
+                    }
+                }
+                else {
+                    log.warn("No locations found at URL: {}", locationURL);
+                }
+            } catch (Exception e) {
+                log.error("Error fetching locations: {}", e.getMessage());
             }
-            logger.info("Done fetching locations.");
-            logger.info("\u001B[34m" + "Finished initialization.");
+            log.info("Done fetching locations.");
+            log.info("\u001B[34m" + "Finished initialization.");
         };
     }
 }

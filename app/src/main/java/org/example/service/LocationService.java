@@ -3,9 +3,9 @@ package org.example.service;
 import lombok.RequiredArgsConstructor;
 import org.example.dao.UniversalDatabase;
 import org.example.entity.Location;
-import org.example.exceptions.LocationNotFoundException;
 import org.springframework.stereotype.Service;
 import java.util.Collection;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -14,11 +14,8 @@ public class LocationService {
     private final UniversalDatabase<String, Location> db;
 
     public Location getLocation(String slug) {
-        Location location = db.get(slug);
-        if (location == null) {
-            throw new LocationNotFoundException("Location with slug: " + slug + " doesn't exist");
-        }
-        return location;
+        Optional<Location> location = Optional.ofNullable(db.get(slug));
+        return location.orElseThrow(() -> new IllegalArgumentException("Location with slug: " + slug + " doesn't exist"));
     }
 
     public Collection<Location> getAllLocations() {
@@ -30,10 +27,8 @@ public class LocationService {
     }
 
     public void deleteLocation(String slug) {
-        Location location = getLocation(slug);
-        if (location == null) {
-            throw new LocationNotFoundException("Location with slug: " + slug + " doesn't exist");
-        }
+        Optional<Location> location = Optional.ofNullable(db.get(slug));
+        location.orElseThrow(() -> new IllegalArgumentException("Location with slug: " + slug + " doesn't exist"));
         db.remove(slug);
     }
 

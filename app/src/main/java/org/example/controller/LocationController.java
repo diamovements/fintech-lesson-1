@@ -1,47 +1,45 @@
 package org.example.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.timing.Timing;
 import org.example.entity.Location;
-import org.example.exceptions.LocationNotFoundException;
 import org.example.service.LocationService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.GetMapping;
 import java.util.Collection;
 
 @RestController
 @RequestMapping("/api/v1/locations")
 @RequiredArgsConstructor
 @Timing
+@Slf4j
 public class LocationController {
 
     private final LocationService locationService;
-    private final Logger logger = LoggerFactory.getLogger(LocationController.class);
-
     @DeleteMapping("/{slug}")
-    public ResponseEntity<?> deleteLocation(@PathVariable("slug") String slug) {
-        try {
-            logger.info("Deleting location: {}", slug);
-            locationService.deleteLocation(slug);
-            return ResponseEntity.ok("Location has been deleted successfully");
-        } catch (LocationNotFoundException ex) {
-            logger.warn("Location doesn't exist: {}", slug);
-            return ResponseEntity.badRequest().body("Location cannot be deleted, because it doesn't exist");
-        }
+    public void deleteLocation(@PathVariable("slug") String slug) {
+        log.info("Deleting location: {}", slug);
+        locationService.deleteLocation(slug);
     }
 
     @PostMapping()
     public ResponseEntity<String> addLocation(@RequestBody Location location) {
-        logger.info("Adding location: {}", location.toString());
+        log.info("Adding location: {}", location.toString());
         locationService.addLocation(location.getSlug(), location);
         return ResponseEntity.ok("Location has been added successfully");
     }
 
     @PutMapping("/{slug}")
     public ResponseEntity<String> updateLocation(@PathVariable("slug") String slug, @RequestBody Location location) {
-        logger.info("Updating location: {}", location.toString());
+        log.info("Updating location: {}", location.toString());
         locationService.updateLocation(slug, location);
         return ResponseEntity.ok("Location has been updated successfully");
     }
@@ -52,12 +50,7 @@ public class LocationController {
     }
 
     @GetMapping("/{slug}")
-    public ResponseEntity<?> getLocation(@PathVariable("slug") String slug) {
-        try {
-            return ResponseEntity.ok(locationService.getLocation(slug));
-        } catch (LocationNotFoundException ex) {
-            logger.warn("Location doesn't exist: {}", slug);
-            return ResponseEntity.badRequest().body("No location with this id");
-        }
+    public Location getLocation(@PathVariable("slug") String slug) {
+        return locationService.getLocation(slug);
     }
 }
