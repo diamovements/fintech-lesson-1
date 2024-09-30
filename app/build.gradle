@@ -1,6 +1,6 @@
 plugins {
     id 'application'
-
+    id 'jacoco'
 }
 
 repositories {
@@ -11,8 +11,8 @@ dependencies {
     implementation project(path: ':timing-starter')
     testImplementation libs.junit
     implementation libs.guava
-    testImplementation ("org.junit.jupiter:junit-jupiter:5.8.1")
-    testRuntimeOnly ("org.junit.jupiter:junit-jupiter-engine:5.8.1")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.1")
+    testRuntimeOnly ("org.junit.jupiter:junit-jupiter-engine:5.9.0")
     implementation("org.springframework.boot:spring-boot-starter-web:3.3.3")
     implementation("org.springframework.boot:spring-boot-starter:3.3.3")
     implementation("org.projectlombok:lombok:1.18.34")
@@ -21,6 +21,18 @@ dependencies {
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor:3.3.3")
     annotationProcessor ("org.projectlombok:lombok:1.18.34")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.0-rc1")
+    testImplementation("org.mockito:mockito-core:5.14.0")
+    testImplementation("org.springframework.boot:spring-boot-test-autoconfigure:3.3.4")
+    testImplementation("org.springframework.boot:spring-boot-test:3.3.4")
+    implementation("com.jayway.jsonpath:json-path:2.9.0")
+    implementation("org.springframework:spring-jdbc:6.1.13")
+    testImplementation("com.github.tomakehurst:wiremock-jre8:3.0.1")
+    testImplementation("org.assertj:assertj-core:3.26.3")
+    testImplementation ("org.testcontainers:testcontainers:1.20.1")
+    testImplementation ("org.testcontainers:junit-jupiter:1.18.0")
+    testImplementation ("org.testcontainers:postgresql:1.18.0")
+    implementation("org.postgresql:postgresql:42.7.4")
+
 }
 
 java {
@@ -32,3 +44,23 @@ java {
 application {
     mainClass = 'org.example.App'
 }
+
+jacocoTestReport {
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    'org/example/dao/**',
+                    'org/example/config/**',
+                    'org/example/entity/**',
+                    '**/App.*'
+            ])
+        }))
+    }
+}
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+
