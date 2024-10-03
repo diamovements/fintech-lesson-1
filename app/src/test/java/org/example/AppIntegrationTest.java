@@ -1,24 +1,24 @@
 package org.example;
 
-import com.github.tomakehurst.wiremock.WireMockServer;
+import org.example.dao.CategoryDatabase;
+import org.example.dao.LocationDatabase;
+import org.example.dao.UniversalDatabase;
+import org.example.entity.Category;
+import org.example.entity.Location;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.web.client.RestTemplate;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import static com.github.tomakehurst.wiremock.client.WireMock.configureFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+import org.wiremock.integrations.testcontainers.WireMockContainer;
+import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -26,54 +26,60 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class AppIntegrationTest {
 
     @Container
-    public static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>(DockerImageName.parse("postgres:16-alpine"));
-
-    private static WireMockServer wireMockServer;
+    public static WireMockContainer wireMockContainer = new WireMockContainer(DockerImageName.parse("wiremock/wiremock:latest"))
+            .withMappingFromResource("wiremock/categories.json")
+            .withMappingFromResource("wiremock/locations.json");
 
     @Autowired
     private RestTemplate restTemplate;
 
+    private static final UniversalDatabase<Integer, Category> categoryDb = new CategoryDatabase();
+    private static final UniversalDatabase<String, Location> locationDb = new LocationDatabase();
+
     @DynamicPropertySource
-    static void wireMockProperties(DynamicPropertyRegistry registry) {
-        registry.add("app.url", () -> "http://localhost:" + wireMockServer.port() + "/public-api/v1.4/");
+    static void overrideProperties(DynamicPropertyRegistry registry) {
+        String wireMockUrl = String.format("http://%s:%d",
+                wireMockContainer.getHost(),
+                wireMockContainer.getMappedPort(8080));
+        registry.add("api.category", () -> wireMockUrl + "/public-api/v1.4/place-categories");
+        registry.add("api.location", () -> wireMockUrl + "/public-api/v1.4/locations");
     }
+
+    @Value("${api.category}")
+    private String category_url;
+
+    @Value("${api.location}")
+    private String location_url;
 
     @BeforeAll
     public static void setUp() {
-        wireMockServer = new WireMockServer(options().dynamicPort());
-        wireMockServer.start();
-        configureFor("localhost", wireMockServer.port());
-        postgreSQLContainer.start();
+        wireMockContainer.start();
     }
 
     @AfterAll
     public static void tearDown() {
-        if (wireMockServer != null) {
-            wireMockServer.stop();
+        wireMockContainer.stop();
+    }
+
+    @Test
+    public void testGetPlaceCategories() {
+        Optional<Category[]> categories = Optional.ofNullable(restTemplate.getForObject(category_url, Category[].class));
+        for (Category c : categories.get()) {
+            categoryDb.put(c.getId(), c);
         }
-        postgreSQLContainer.stop();
+
+        assertThat(categoryDb.getAll()).hasSize(3);
+        assertThat(categoryDb.getAll()).extracting("name").containsExactlyInAnyOrder("Питомники", "Развлечения", "Аэропорты");
     }
 
     @Test
-    void getCategories_shouldReturnCategories() {
-        stubFor(get(urlEqualTo("/place-categories"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("[{\"id\": 9, \"slug\": \"homesteads\", \"name\": \"Усадьбы\"}]")));
+    public void testGetLocations() {
+        Optional<Location[]> locations = Optional.ofNullable(restTemplate.getForObject(location_url, Location[].class));
+        for (Location l : locations.get()) {
+            locationDb.put(l.getSlug(), l);
+        }
 
-        String response = restTemplate.getForObject("http://localhost:" + wireMockServer.port() + "/place-categories", String.class);
-        assertThat(response).contains("Усадьбы");
-    }
-
-    @Test
-    void getPlaces_shouldReturnPlaces() {
-        stubFor(get(urlEqualTo("/locations"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBody("[{\"slug\": \"msk\", \"name\": \"Москва\"}]")));
-        String response = restTemplate.getForObject("http://localhost:" + wireMockServer.port() + "/locations", String.class);
-        assertThat(response).contains("Москва");
+        assertThat(locationDb.getAll()).hasSize(3);
+        assertThat(locationDb.getAll()).extracting("name").containsExactlyInAnyOrder("Москва", "Екатеринбург", "Казань");
     }
 }
