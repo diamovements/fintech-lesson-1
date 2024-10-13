@@ -8,12 +8,14 @@ import org.example.entity.ValCurs;
 import org.example.entity.Valute;
 import org.example.exception.CurrencyNotFoundException;
 import org.example.exception.CurrencyServiceUnavailableException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
@@ -24,9 +26,12 @@ import java.util.Objects;
 public class CurrencyCacheService {
 
     private final CacheManager manager;
+    private final RestTemplate restTemplate;
+    @Value("${api.currency-url}")
+    private String apiUrl;
     @Cacheable(value = "rates", key = "#p0")
     @CircuitBreaker(name = "currencyService", fallbackMethod = "getCurrencyRateFallback")
-    public Double getCurrencyRate(String code, RestTemplate restTemplate, String apiUrl) {
+    public BigDecimal getCurrencyRate(String code) {
         try {
             String url = String.format("%sdate_req=%s", apiUrl, LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
             String xmlResponse = restTemplate.getForObject(url, String.class);
@@ -37,10 +42,10 @@ public class CurrencyCacheService {
         }
     }
 
-    public Double getCurrencyRateFallback(String code, Throwable throwable) {
+    private BigDecimal getCurrencyRateFallback(String code, Throwable throwable) {
         log.error("Error occurred while getting currency: {}, {}", code, throwable.getMessage());
 
-        Double rateTry = Objects.requireNonNull(manager.getCache("rates")).get(code, Double.class);
+        BigDecimal rateTry = Objects.requireNonNull(manager.getCache("rates")).get(code, BigDecimal.class);
         if (rateTry != null) {
             log.info("Currency rate from cache: {}", rateTry);
             return rateTry;
@@ -48,7 +53,7 @@ public class CurrencyCacheService {
         throw new CurrencyNotFoundException("Currency not found");
     }
 
-    public Double parseRateFromXML(String xmlResponse, String code) {
+    public BigDecimal parseRateFromXML(String xmlResponse, String code) {
         try {
             XmlMapper xmlMapper = new XmlMapper();
             ValCurs valCurs = xmlMapper.readValue(xmlResponse, ValCurs.class);
@@ -56,8 +61,7 @@ public class CurrencyCacheService {
             for (Valute valute : valCurs.valuteList()) {
                 if (valute.charCode().equals(code)) {
                     log.info("Valutes: {}", valute.charCode());
-                    return Double.parseDouble(valute.value().replace(",", "."));
-                }
+                    return new BigDecimal(valute.value().replace(",", "."));                }
             }
             log.error("Currency not found: {}", code);
             throw new CurrencyNotFoundException("Currency not found");

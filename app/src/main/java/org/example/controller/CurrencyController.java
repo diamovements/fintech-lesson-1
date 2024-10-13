@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/currencies")
@@ -52,8 +54,7 @@ public class CurrencyController {
     })
     @GetMapping("/rates/{code}")
     public ResponseEntity<RateResponse> getRate(@PathVariable("code") @NotNull(message = "Code must not be null") String code) {
-        Double rate = currencyService.getCurrencyRate(code);
-        return ResponseEntity.ok(new RateResponse(code, rate));
+        return ResponseEntity.ok(new RateResponse(code, currencyService.getCurrencyRate(code)));
     }
 
     @Operation(summary = "Convert currency by request", description = "Converting currency from one code to another.")
@@ -78,8 +79,8 @@ public class CurrencyController {
     public ResponseEntity<ConvertResponse> convertCurrencies(@RequestBody @Valid ConvertRequest request) {
         String fromCurrency = request.fromCurrency();
         String toCurrency = request.toCurrency();
-        Double amount = request.amount();
-        Double convertedAmount = currencyService.convertCurrency(amount, fromCurrency, toCurrency);
+        BigDecimal amount = request.amount();
+        BigDecimal convertedAmount = currencyService.convertCurrency(amount, fromCurrency, toCurrency);
         return ResponseEntity.ok(new ConvertResponse(fromCurrency, toCurrency, convertedAmount));
     }
 }

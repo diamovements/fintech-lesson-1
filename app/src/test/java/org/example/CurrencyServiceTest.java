@@ -1,6 +1,5 @@
 package org.example;
 
-import org.example.config.SupportedCurrencies;
 import org.example.exception.CurrencyNotFoundException;
 import org.example.service.CurrencyCacheService;
 import org.example.service.CurrencyService;
