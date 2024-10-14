@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 @Setter
@@ -14,5 +15,5 @@ import java.util.Map;
 @NoArgsConstructor
 public class CurrencyResponse {
     @JsonProperty("rates")
-    private Map<String, Double> rates;
+    private Map<String, BigDecimal> rates;
 }

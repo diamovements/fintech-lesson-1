@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 @Getter
@@ -14,6 +15,6 @@ import java.util.Date;
 public class EventRequest {
     private Date dateFrom;
     private Date dateTo;
-    private Double budget;
+    private BigDecimal budget;
     private String currency;
 }

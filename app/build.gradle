@@ -31,6 +31,8 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter:1.18.0")
     testImplementation ("org.testcontainers:testcontainers:1.18.3")
     implementation("org.wiremock.integrations.testcontainers:wiremock-testcontainers-module:1.0-alpha-13")
+    implementation("io.projectreactor:reactor-core:3.6.10")
+
 }
 
 java {

@@ -6,15 +6,22 @@ import org.example.entity.Event;
 import org.example.entity.request.EventRequest;
 import org.example.entity.response.EventResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,42 +29,44 @@ import java.util.stream.Collectors;
 @Slf4j
 public class EventService {
 
-    @Value("${spring.url.events}")
-    private String eventsURL;
+    @Value("${spring.url.event}")
+    private String eventURL;
 
     private final RestTemplate restTemplate;
 
     private final CurrencyService currencyService;
 
-    public List<Event> getPopularEvents(EventRequest request) {
+    @Async
+    public CompletableFuture<List<Event>> getPopularEvents(EventRequest request) {
         Date currentDate = new Date();
-        Date actualSince;
-        Date actualUntil;
+        Date actualSince = request.getDateFrom();
+        Date actualUntil = request.getDateTo();
 
-        if (request.getDateFrom() != null && request.getDateTo() != null) {
-            actualSince = request.getDateFrom();
-            actualUntil = request.getDateTo();
-        }
-        else {
+        if (actualSince == null || actualUntil == null) {
             actualSince = getStartOfWeek(currentDate);
             actualUntil = getEndOfWeek(currentDate);
         }
+
         log.info("Actual since: {}, actual until: {}", actualSince, actualUntil);
-        String url = String.format("%s?actual_since=%s&actual_until=%s&fields=price,id,slug,title",
-                eventsURL, actualSince.getTime() / 1000, actualUntil.getTime() / 1000);
+        String url = String.format("%s&actual_since=%s&actual_until=%s",
+                eventURL, actualSince.getTime() / 1000, actualUntil.getTime() / 1000);
         log.info("Url: {}", url);
-        EventResponse eventResponse = restTemplate.getForObject(url, EventResponse.class);
-        Double budgetRub = currencyService.convertToRub(request.getBudget(), request.getCurrency());
-        log.info("Budget: {}", budgetRub);
-        return eventResponse.getResults().stream()
-                .filter(event -> {
-                    Double eventPrice = parsePriceToDouble(event.getPrice());
-                    return eventPrice != null && eventPrice <= budgetRub;
-                })
-                .collect(Collectors.toList());
+        CompletableFuture<EventResponse> eventFuture = CompletableFuture.supplyAsync(() -> restTemplate.getForObject(url, EventResponse.class));
+        CompletableFuture<BigDecimal> budgetRubFuture = currencyService.convertToRub(request.getBudget(), request.getCurrency());
+        CompletableFuture.allOf(eventFuture, budgetRubFuture).join();
+
+        CopyOnWriteArrayList<Event> resultList = new CopyOnWriteArrayList<>();
+        CompletableFuture<Void> combinedFutures = eventFuture.thenAcceptBoth(budgetRubFuture,
+                (eventResponse, budget) -> {
+            eventResponse.getResults().stream().filter(event -> {
+                BigDecimal eventPrice = parsePrice(event.getPrice());
+                return eventPrice != null && eventPrice.compareTo(budget) <= 0;
+            }).forEach(resultList::add);
+        });
+        return combinedFutures.thenApplyAsync(res -> resultList);
     }
 
-    private Double parsePriceToDouble(String price) {
+    private BigDecimal parsePrice(String price) {
         if (price == null || price.isEmpty() || price.equalsIgnoreCase("уточняется")) {
             return null;
         }
@@ -65,12 +74,25 @@ public class EventService {
         if (priceParts.length > 0) {
             try {
                 log.info("Price: {}", priceParts[0]);
-                return Double.parseDouble(priceParts[0]);
+                return new BigDecimal(priceParts[0]);
             } catch (NumberFormatException e) {
                 return null;
             }
         }
         return null;
+    }
+
+    public Date parseDate(String date) {
+        if (date == null) {
+            return null;
+        }
+        try {
+            SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
+            return formatter.parse(date);
+        } catch (ParseException e) {
+            log.error("Date parse error", e);
+            throw new RuntimeException(e);
+        }
     }
 
     private Date getStartOfWeek(Date now) {
@@ -84,5 +106,4 @@ public class EventService {
         LocalDate startOfWeek = localDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
         return Date.from(startOfWeek.atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
-
 }
