@@ -11,6 +11,6 @@ public class ControllerExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseBody
     public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException ex) {
-        return new ResponseEntity<>("Id or slug: " + ex.getMessage() + " not found", HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>("Parameter: " + ex.getMessage() + " not found", HttpStatus.BAD_REQUEST);
     }
 }

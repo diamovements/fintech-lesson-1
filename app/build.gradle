@@ -32,7 +32,9 @@ dependencies {
     testImplementation ("org.testcontainers:testcontainers:1.18.3")
     implementation("org.wiremock.integrations.testcontainers:wiremock-testcontainers-module:1.0-alpha-13")
     implementation("io.projectreactor:reactor-core:3.6.10")
-
+    implementation("org.springframework.boot:spring-boot-starter-webflux:3.3.4")
+    testImplementation("org.skyscreamer:jsonassert:2.0-rc1")
+    testImplementation("io.projectreactor:reactor-test:3.6.10")
 }
 
 java {

@@ -1,14 +1,15 @@
 package org.example.service;
 
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.entity.Event;
 import org.example.entity.request.EventRequest;
 import org.example.entity.response.EventResponse;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -17,11 +18,8 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,12 +30,11 @@ public class EventService {
     @Value("${spring.url.event}")
     private String eventURL;
 
-    private final RestTemplate restTemplate;
+    private final WebClient webClient;
 
     private final CurrencyService currencyService;
 
-    @Async
-    public CompletableFuture<List<Event>> getPopularEvents(EventRequest request) {
+    public Mono<List<Event>> getPopularEvents(EventRequest request) {
         Date currentDate = new Date();
         Date actualSince = request.getDateFrom();
         Date actualUntil = request.getDateTo();
@@ -48,22 +45,32 @@ public class EventService {
         }
 
         log.info("Actual since: {}, actual until: {}", actualSince, actualUntil);
-        String url = String.format("%s&actual_since=%s&actual_until=%s",
-                eventURL, actualSince.getTime() / 1000, actualUntil.getTime() / 1000);
-        log.info("Url: {}", url);
-        CompletableFuture<EventResponse> eventFuture = CompletableFuture.supplyAsync(() -> restTemplate.getForObject(url, EventResponse.class));
-        CompletableFuture<BigDecimal> budgetRubFuture = currencyService.convertToRub(request.getBudget(), request.getCurrency());
-        CompletableFuture.allOf(eventFuture, budgetRubFuture).join();
 
-        CopyOnWriteArrayList<Event> resultList = new CopyOnWriteArrayList<>();
-        CompletableFuture<Void> combinedFutures = eventFuture.thenAcceptBoth(budgetRubFuture,
-                (eventResponse, budget) -> {
-            eventResponse.getResults().stream().filter(event -> {
-                BigDecimal eventPrice = parsePrice(event.getPrice());
-                return eventPrice != null && eventPrice.compareTo(budget) <= 0;
-            }).forEach(resultList::add);
-        });
-        return combinedFutures.thenApplyAsync(res -> resultList);
+        String url = String.format("%s?actual_since=%s&actual_until=%s&fields=price,id,slug,title&order_by=favorites_count",
+                eventURL + "/", actualSince.getTime() / 1000, actualUntil.getTime() / 1000);
+
+        log.info("Url: {}", url);
+
+        Mono<EventResponse> eventResponseMono = webClient.get()
+                .uri(url)
+                .retrieve()
+                .bodyToMono(EventResponse.class)
+                .doOnError(e -> log.error("Error fetching events: {}", e.getMessage()));
+
+        Mono<BigDecimal> budgetMono = currencyService.convertToRub(request.getBudget(), request.getCurrency());
+
+        return Mono.zip(eventResponseMono, budgetMono)
+                .map(tuple -> {
+                    EventResponse eventResponse = tuple.getT1();
+                    BigDecimal budget = tuple.getT2();
+
+                    return eventResponse.getResults().stream()
+                            .filter(event -> {
+                                BigDecimal eventPrice = parsePrice(event.getPrice());
+                                return eventPrice != null && eventPrice.compareTo(budget) <= 0;
+                            })
+                            .collect(Collectors.toList());
+                });
     }
 
     private BigDecimal parsePrice(String price) {
