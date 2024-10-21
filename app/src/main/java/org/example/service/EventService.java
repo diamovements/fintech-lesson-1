@@ -1,116 +1,94 @@
 package org.example.service;
 
-
+import jakarta.persistence.criteria.JoinType;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.example.entity.Event;
+import org.example.entity.EventEntity;
+import org.example.entity.EventFilter;
+import org.example.entity.PlaceEntity;
 import org.example.entity.request.EventRequest;
-import org.example.entity.response.EventResponse;
-import org.springframework.beans.factory.annotation.Value;
+import org.example.repository.EventRepository;
+import org.example.repository.PlaceRepository;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
-import java.math.BigDecimal;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.temporal.TemporalAdjusters;
-import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class EventService {
-
-    @Value("${spring.url.event}")
-    private String eventURL;
-
-    private final WebClient webClient;
-
-    private final CurrencyService currencyService;
-
-    public Mono<List<Event>> getPopularEvents(EventRequest request) {
-        Date currentDate = new Date();
-        Date actualSince = request.getDateFrom();
-        Date actualUntil = request.getDateTo();
-
-        if (actualSince == null || actualUntil == null) {
-            actualSince = getStartOfWeek(currentDate);
-            actualUntil = getEndOfWeek(currentDate);
-        }
-
-        log.info("Actual since: {}, actual until: {}", actualSince, actualUntil);
-
-        String url = String.format("%s?actual_since=%s&actual_until=%s&fields=price,id,slug,title&order_by=favorites_count",
-                eventURL + "/", actualSince.getTime() / 1000, actualUntil.getTime() / 1000);
-
-        log.info("Url: {}", url);
-
-        Mono<EventResponse> eventResponseMono = webClient.get()
-                .uri(url)
-                .retrieve()
-                .bodyToMono(EventResponse.class)
-                .doOnError(e -> log.error("Error fetching events: {}", e.getMessage()));
-
-        Mono<BigDecimal> budgetMono = currencyService.convertToRub(request.getBudget(), request.getCurrency());
-
-        return Mono.zip(eventResponseMono, budgetMono)
-                .map(tuple -> {
-                    EventResponse eventResponse = tuple.getT1();
-                    BigDecimal budget = tuple.getT2();
-
-                    return eventResponse.getResults().stream()
-                            .filter(event -> {
-                                BigDecimal eventPrice = parsePrice(event.getPrice());
-                                return eventPrice != null && eventPrice.compareTo(budget) <= 0;
-                            })
-                            .collect(Collectors.toList());
-                });
+    private final EventRepository eventRepository;
+    private final PlaceRepository placeRepository;
+    public List<EventEntity> getAllEvents() {
+        return eventRepository.findAll();
     }
 
-    private BigDecimal parsePrice(String price) {
-        if (price == null || price.isEmpty() || price.equalsIgnoreCase("уточняется")) {
-            return null;
-        }
-        String[] priceParts = price.replaceAll("[^0-9\\s]", "").trim().split("\\s+");
-        if (priceParts.length > 0) {
-            try {
-                log.info("Price: {}", priceParts[0]);
-                return new BigDecimal(priceParts[0]);
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-        return null;
+    public EventEntity getEventById(Long id) {
+        return eventRepository.findById(id).orElse(null);
     }
 
-    public Date parseDate(String date) {
-        if (date == null) {
-            return null;
-        }
-        try {
-            SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
-            return formatter.parse(date);
-        } catch (ParseException e) {
-            log.error("Date parse error", e);
-            throw new RuntimeException(e);
-        }
+    public EventEntity createEvent(EventRequest request) {
+        PlaceEntity place = placeRepository.findById(request.getPlaceId()).orElseThrow(() ->
+                new IllegalArgumentException("Place not found"));
+        EventEntity event = new EventEntity();
+        event.setTitle(request.getName());
+        event.setFromDate(request.getDateFrom());
+        event.setPlace_id(place);
+        event.setToDate(request.getDateTo());
+
+        return eventRepository.save(event);
     }
 
-    private Date getStartOfWeek(Date now) {
-        LocalDate localDate = now.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-        LocalDate startOfWeek = localDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        return Date.from(startOfWeek.atStartOfDay(ZoneId.systemDefault()).toInstant());
+    public EventEntity updateEvent(Long id, EventRequest request) {
+        EventEntity existingEvent = eventRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Event with id " + id + " not found"));
+
+        if (request.getPlaceId() != null) {
+            PlaceEntity place = placeRepository.findById(request.getPlaceId())
+                    .orElseThrow(() -> new IllegalArgumentException("Place with id " + request.getPlaceId() + " not found"));
+            existingEvent.setPlace_id(place);
+        }
+
+        existingEvent.setTitle(request.getName());
+        existingEvent.setFromDate(request.getDateFrom());
+        existingEvent.setToDate(request.getDateTo());
+
+        return eventRepository.save(existingEvent);
     }
 
-    private Date getEndOfWeek(Date now) {
-        LocalDate localDate = now.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-        LocalDate startOfWeek = localDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
-        return Date.from(startOfWeek.atStartOfDay(ZoneId.systemDefault()).toInstant());
+    public void deleteEvent(Long id) {
+        EventEntity event = eventRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Event with id " + id + " not found"));
+        eventRepository.delete(event);
+    }
+
+    public Optional<List<EventEntity>> findByFilter(EventFilter filter) {
+        Specification<EventEntity> spec = Specification.where(null);
+
+        if (filter.getName() != null && !filter.getName().isEmpty()) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), "%" + filter.getName().toLowerCase() + "%")
+            );
+        }
+        if (filter.getPlace_id() != null) {
+            spec = spec.and((root, query, criteriaBuilder) -> {
+                root.fetch("place", JoinType.LEFT);
+                return criteriaBuilder.equal(root.get("place").get("id"), filter.getPlace_id());
+            });
+        }
+        if (filter.getFromDate() != null && filter.getToDate() != null) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.between(root.get("fromDate"), filter.getFromDate(), filter.getToDate())
+            );
+        } else if (filter.getFromDate() != null) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.greaterThanOrEqualTo(root.get("fromDate"), filter.getFromDate())
+            );
+        } else if (filter.getToDate() != null) {
+            spec = spec.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.lessThanOrEqualTo(root.get("toDate"), filter.getToDate())
+            );
+        }
+        return eventRepository.findAll(spec);
     }
 }

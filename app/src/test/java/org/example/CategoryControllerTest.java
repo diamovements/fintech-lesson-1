@@ -1,7 +1,5 @@
 package org.example;
 
-import org.example.entity.Category;
-import org.example.service.CategoryService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;

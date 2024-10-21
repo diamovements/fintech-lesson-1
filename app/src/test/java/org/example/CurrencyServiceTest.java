@@ -1,7 +1,6 @@
 package org.example;
 
 import org.example.entity.response.CurrencyResponse;
-import org.example.service.CurrencyService;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;

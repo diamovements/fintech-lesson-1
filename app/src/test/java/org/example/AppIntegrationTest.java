@@ -3,8 +3,6 @@ package org.example;
 import org.example.dao.CategoryDatabase;
 import org.example.dao.LocationDatabase;
 import org.example.dao.UniversalDatabase;
-import org.example.entity.Category;
-import org.example.entity.Location;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;

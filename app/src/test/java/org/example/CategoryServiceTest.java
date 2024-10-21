@@ -2,8 +2,6 @@ package org.example;
 
 import org.example.dao.CategoryDatabase;
 import org.example.dao.UniversalDatabase;
-import org.example.entity.Category;
-import org.example.service.CategoryService;
 import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;

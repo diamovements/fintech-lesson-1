@@ -1,7 +1,5 @@
 package org.example;
 
-import org.example.entity.Location;
-import org.example.service.LocationService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;

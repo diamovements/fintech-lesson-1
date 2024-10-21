@@ -2,7 +2,7 @@ package org.example;
 
 import org.example.dao.LocationDatabase;
 import org.example.dao.UniversalDatabase;
-import org.example.entity.Location;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 
-import org.example.service.LocationService;
 import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;

@@ -1,8 +1,7 @@
 package org.example;
 
-import org.example.entity.Event;
+import org.example.entity.dto.Event;
 import org.example.entity.request.EventRequest;
-import org.example.service.EventService;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
