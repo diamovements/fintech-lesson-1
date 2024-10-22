@@ -35,7 +35,7 @@ public class PlacesController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PlaceEntity> getPlaceById(@PathVariable Long id) {
+    public ResponseEntity<PlaceEntity> getPlaceById(@PathVariable("id") Long id) {
         PlaceEntity place = placeService.getPlaceById(id);
         return place != null ? ResponseEntity.ok(place) : ResponseEntity.notFound().build();
     }
@@ -47,13 +47,13 @@ public class PlacesController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PlaceEntity> updatePlace(@PathVariable Long id, @Valid @RequestBody PlaceRequest request) {
+    public ResponseEntity<PlaceEntity> updatePlace(@PathVariable("id") Long id, @Valid @RequestBody PlaceRequest request) {
         PlaceEntity updatedPlace = placeService.updatePlace(id, request);
         return updatedPlace != null ? ResponseEntity.ok(updatedPlace) : ResponseEntity.notFound().build();
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<PlaceEntity> deletePlace(@PathVariable Long id) {
+    public ResponseEntity<PlaceEntity> deletePlace(@PathVariable("id") Long id) {
         PlaceEntity toDelete = placeService.getPlaceById(id);
         if (toDelete != null) {
             placeService.deletePlace(id);

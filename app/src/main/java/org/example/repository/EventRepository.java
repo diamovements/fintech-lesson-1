@@ -1,7 +1,6 @@
 package org.example.repository;
 
 import org.example.entity.EventEntity;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 
