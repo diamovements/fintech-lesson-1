@@ -13,8 +13,8 @@ import java.util.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 public class EventRequest {
-    private Date dateFrom;
-    private Date dateTo;
+    private String dateFrom;
+    private String dateTo;
     private BigDecimal budget;
     private String currency;
 }

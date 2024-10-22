@@ -13,11 +13,11 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@JsonIgnoreProperties(ignoreUnknown = true)
+//@JsonIgnoreProperties(ignoreUnknown = true)
 public class EventResponse {
     private int count;
     private String next;
     private String previous;
-    @JsonProperty("results")
+//    @JsonProperty("results")
     private List<Event> results;
 }
