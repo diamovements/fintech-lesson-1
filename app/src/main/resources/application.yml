@@ -7,6 +7,7 @@ spring:
   concurrency:
     max: 3
     duration: PT10M
+    scheduled: 1
 logging:
   level:
     root: INFO

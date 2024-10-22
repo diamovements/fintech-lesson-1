@@ -13,19 +13,21 @@ public class ExecutorsConfig {
     @Value("${spring.concurrency.max}")
     private int maxPoolSize;
 
+    @Value("${spring.concurrency.scheduled}")
+    private int scheduledPoolSize;
+
     @Bean(name = "myFixedThreadPool")
     public ExecutorService fixedThreadPool() {
         return Executors.newFixedThreadPool(maxPoolSize, runnable -> {
             Thread thread = new Thread(runnable);
             thread.setName("InitializerWorker-" + thread.getName());
-            System.out.println(thread.getName());
             return thread;
         });
     }
 
     @Bean(name = "myScheduledThreadPool")
     public ScheduledExecutorService scheduledThreadPool() {
-        return Executors.newScheduledThreadPool(1, runnable -> {
+        return Executors.newScheduledThreadPool(scheduledPoolSize, runnable -> {
             Thread thread = new Thread(runnable);
             thread.setName("InitializerScheduler");
             System.out.println(thread.getName());
